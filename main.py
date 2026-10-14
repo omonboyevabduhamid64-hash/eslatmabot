@@ -17,7 +17,8 @@ from handlers import (
     add_reminder,
     list_reminders,
     edit_reminder,
-    delete_reminder
+    delete_reminder,
+    group_reminder
 )
 
 # Logging sozlamalari
@@ -69,6 +70,7 @@ async def main():
     dp = Dispatcher(storage=MemoryStorage())
 
     # Handler routerlarini ro'yxatdan o'tkazish
+    dp.include_router(group_reminder.router)
     dp.include_router(common.router)
     dp.include_router(add_reminder.router)
     dp.include_router(list_reminders.router)

@@ -115,3 +115,81 @@ def format_reminder_summary(reminder: dict) -> str:
         f"⏰ <b>Eslatish vaqti:</b> <code>{remind_at}</code>\n"
         f"📝 <b>Izoh / Matn:</b> {caption}\n"
     )
+
+def parse_group_datetime(text: str) -> tuple[str | None, str | None, str | None]:
+    """
+    Guruhdagi xabardan sana, vaqt va eslatma matnini ajratib olish.
+    Qaytaradi: (remind_at, clean_caption, error_message)
+    """
+    if not text:
+        return None, None, "⚠️ Vaqt ko'rsatilmadi."
+
+    text = text.strip()
+    # /eslat, /eslatma, /remind komandalarini olib tashlash
+    text = re.sub(r"^/(eslatma|eslat|remind)(@\w+)?\s*", "", text, flags=re.IGNORECASE).strip()
+    now = datetime.now(TIMEZONE)
+
+    # 1. Nisbiy vaqtlar (masalan: 15 daqiqa, 1 soat)
+    rel_match = re.search(r"(\d+)\s*(daqiqa|minut|soat)", text, re.IGNORECASE)
+    if rel_match:
+        val = int(rel_match.group(1))
+        unit = rel_match.group(2).lower()
+        if "soat" in unit:
+            target_dt = now + timedelta(hours=val)
+        else:
+            target_dt = now + timedelta(minutes=val)
+        clean_text = text[:rel_match.start()] + text[rel_match.end():]
+        clean_text = clean_text.replace("da", "").replace("so'ng", "").strip()
+        return target_dt.strftime("%Y-%m-%d %H:%M:00"), clean_text, None
+
+    # 2. Aniq vaqt (SS:DD)
+    time_match = re.search(r"\b(\d{1,2}):(\d{2})\b", text)
+    if not time_match:
+        return None, None, (
+            "⚠️ Vaqt aniqlanmadi!\n"
+            "Misol: <code>/eslat 18:30</code> yoki <code>/eslat ertaga 09:00</code>"
+        )
+
+    hour = int(time_match.group(1))
+    minute = int(time_match.group(2))
+    if not (0 <= hour <= 23 and 0 <= minute <= 59):
+        return None, None, "⚠️ Vaqt formati noto'g'ri (00:00 dan 23:59 gacha bo'lishi kerak)."
+
+    # Sana aniqlash
+    target_date = now.date()
+    lower_text = text.lower()
+
+    # Ertaga yoki Indinga
+    if "ertaga" in lower_text:
+        target_date = (now + timedelta(days=1)).date()
+    elif "indinga" in lower_text:
+        target_date = (now + timedelta(days=2)).date()
+    else:
+        # Aniq sana (KK.OO.YYYY)
+        dmy_match = re.search(r"\b(\d{1,2})[./\-](\d{1,2})[./\-](\d{4})\b", text)
+        if dmy_match:
+            d, m, y = int(dmy_match.group(1)), int(dmy_match.group(2)), int(dmy_match.group(3))
+            try:
+                target_date = datetime(y, m, d).date()
+            except ValueError:
+                return None, None, "⚠️ Sana noto'g'ri ko'rsatildi."
+
+    target_dt = datetime(target_date.year, target_date.month, target_date.day, hour, minute, 0, tzinfo=TIMEZONE)
+
+    # Agar sana ko'rsatilmagan bo'lsa va vaqt o'tib ketgan bo'lsa -> avtomatik ertangi kunga o'tkazish
+    if "ertaga" not in lower_text and "indinga" not in lower_text and not re.search(r"\b\d{1,2}[./\-]\d{1,2}[./\-]\d{4}\b", text):
+        if target_dt <= now:
+            target_dt = target_dt + timedelta(days=1)
+
+    # Qolgan matnni tozalash
+    clean_text = text
+    # vaqtni olib tashlash
+    clean_text = clean_text[:time_match.start()] + clean_text[time_match.end():]
+    # sanani olib tashlash
+    clean_text = re.sub(r"\b(bugun|ertaga|indinga)\b", "", clean_text, flags=re.IGNORECASE)
+    clean_text = re.sub(r"\b\d{1,2}[./\-]\d{1,2}[./\-]\d{4}\b", "", clean_text)
+    clean_text = re.sub(r"\b(da|ga|soat|vaqtida)\b", "", clean_text, flags=re.IGNORECASE)
+    clean_text = re.sub(r"\s+", " ", clean_text).strip()
+
+    return target_dt.strftime("%Y-%m-%d %H:%M:00"), clean_text, None
+
