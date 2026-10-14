@@ -5,10 +5,10 @@ from utils import parse_group_datetime
 
 router = Router()
 
-# Faqat guruh va superguruh xabarlari uchun
-router.message.filter(F.chat.type.in_({"group", "supergroup"}))
+# Guruhlarda ham, shaxsiy lichkada ham /eslat ishlashi uchun
+router.message.filter(F.chat.type.in_({"group", "supergroup", "private"}))
 
-@router.message(F.text.regexp(r"^/(eslat|eslatma|remind)", flags=2) | F.caption.regexp(r"^/(eslat|eslatma|remind)", flags=2))
+@router.message(F.text.regexp(r"/(eslat|eslatma|remind)", flags=2) | F.caption.regexp(r"/(eslat|eslatma|remind)", flags=2))
 async def handle_group_reminder_command(message: Message):
     """
     Guruhda /eslat komandasi orqali eslatma qo'shish.

@@ -125,8 +125,8 @@ def parse_group_datetime(text: str) -> tuple[str | None, str | None, str | None]
         return None, None, "⚠️ Vaqt ko'rsatilmadi."
 
     text = text.strip()
-    # /eslat, /eslatma, /remind komandalarini olib tashlash
-    text = re.sub(r"^/(eslatma|eslat|remind)(@\w+)?\s*", "", text, flags=re.IGNORECASE).strip()
+    # /eslat, /eslatma, /remind komandalarini har qanday joydan olib tashlash
+    text = re.sub(r"/(eslatma|eslat|remind)(@\w+)?\s*", "", text, flags=re.IGNORECASE).strip()
     now = datetime.now(TIMEZONE)
 
     # 1. Nisbiy vaqtlar (masalan: 15 daqiqa, 1 soat)
