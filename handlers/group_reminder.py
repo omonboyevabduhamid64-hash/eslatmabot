@@ -86,12 +86,6 @@ async def handle_group_reminder_command(message: Message):
     }
     t_name = types_uz.get(content_type, "Xabar")
 
-    response_text = (
-        f"✅ <b>Eslatma qabul qilindi, {message.from_user.first_name}!</b>\n\n"
-        f"🆔 Eslatma raqami: <b>#{reminder_id}</b>\n"
-        f"📌 Turi: <b>{t_name}</b>\n"
-        f"⏰ Eslatish vaqti: <code>{remind_at}</code>\n\n"
-        f"🔒 <i>Belgilangan vaqtda bu eslatma guruhga emas, aynan sizning <b>shaxsiy lichkangizga</b> yetkaziladi.</i>"
-    )
+    # Foydalanuvchi talabiga ko'ra guruhda ortiqcha matnsiz faqat ✅ belgisi yuboriladi
+    await message.reply("✅")
 
-    await message.reply(response_text, parse_mode="HTML")
