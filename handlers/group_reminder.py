@@ -1,3 +1,4 @@
+import re
 from aiogram import Router, F
 from aiogram.types import Message
 from database import add_reminder
@@ -5,10 +6,12 @@ from utils import parse_group_datetime
 
 router = Router()
 
-# Guruhlarda ham, shaxsiy lichkada ham /eslat ishlashi uchun
-router.message.filter(F.chat.type.in_({"group", "supergroup", "private"}))
+def is_reminder_message(message: Message) -> bool:
+    """Xabar yoki izoh ichida /eslat, /eslatma, /remind borligini tekshirish"""
+    text = message.text or message.caption or ""
+    return bool(re.search(r"/(eslat|eslatma|remind)", text, re.IGNORECASE))
 
-@router.message(F.text.regexp(r"/(eslat|eslatma|remind)", flags=2) | F.caption.regexp(r"/(eslat|eslatma|remind)", flags=2))
+@router.message(is_reminder_message)
 async def handle_group_reminder_command(message: Message):
     """
     Guruhda /eslat komandasi orqali eslatma qo'shish.
